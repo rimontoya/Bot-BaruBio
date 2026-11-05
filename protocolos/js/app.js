@@ -559,7 +559,7 @@
       const datos = await (await fetch(URL_NUBE)).json();
       if (!datos.ok) throw new Error();
       recibirNube(datos.precios);
-      estadoPrecios(`Precios sincronizados a las ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}.`);
+      estadoPrecios(`Precios sincronizados con la hoja (${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })})`);
     } catch {
       estadoPrecios('Sin conexión con la hoja: se usan los últimos precios descargados.');
     }

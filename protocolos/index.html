@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Generador de Protocolos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="barra no-print">
+    <div class="titulo">
+      <img class="logo" src="img/logo.png" alt="Barü Bio">
+      <span class="separador"></span>
+      <h1>Generador de Protocolos</h1>
+    </div>
+    <nav class="tabs">
+      <button type="button" data-tab="protocolo" class="activa">Protocolo</button>
+      <button type="button" data-tab="presupuesto">Presupuesto</button>
+      <button type="button" data-tab="precios">Precios</button>
+    </nav>
+  </header>
+
+  <main id="tab-protocolo" class="tab">
+    <form id="form" class="panel no-print" autocomplete="off">
+      <fieldset>
+        <legend>Cliente</legend>
+        <label>Nombre <input name="cliente" placeholder="Ej. María Pérez"></label>
+        <label>Objetivo <input name="objetivo"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Producto</legend>
+        <label>Péptido <select name="producto" id="sel-producto"></select></label>
+        <div class="fila">
+          <label>Presentación <select name="vialMg" id="sel-vial"></select></label>
+          <label>Agua (mL) <input name="aguaMl" type="number" min="0.5" step="0.5"></label>
+        </div>
+        <label>Estabilidad tras reconstituir (días) <input name="estabilidadDias" type="number" min="1" step="1" value="28"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Dosis</legend>
+        <div id="etapas"></div>
+        <button type="button" id="btn-etapa" class="secundario">+ Agregar etapa (escalado de dosis)</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Frecuencia</legend>
+        <div class="presets">
+          <button type="button" data-preset="lv">Lunes a viernes</button>
+          <button type="button" data-preset="diaria">Diaria</button>
+          <button type="button" data-preset="lmv">Lun · Mié · Vie</button>
+          <button type="button" data-preset="semanal">Semanal</button>
+        </div>
+        <div id="dias" class="dias"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Opciones del PDF</legend>
+        <label class="check"><input type="checkbox" name="incluirFases" checked> Incluir resultados por fase (si el producto los tiene)</label>
+        <label class="check"><input type="checkbox" name="incluirPresupuesto"> Incluir presupuesto (precio de kit)</label>
+        <label>Indicaciones adicionales <textarea name="notas" rows="3" placeholder="Opcional"></textarea></label>
+      </fieldset>
+
+      <div id="avisos"></div>
+      <button type="button" id="btn-pdf" class="primario">Descargar PDF</button>
+      <button type="button" id="btn-presupuesto" class="secundario boton-ancho">Generar presupuesto</button>
+      <p class="ayuda">En la ventana de impresión elige <b>“Guardar como PDF”</b>.</p>
+    </form>
+
+    <article id="vista" class="documento"></article>
+    <article id="vista-presupuesto" class="documento"></article>
+  </main>
+
+  <main id="tab-presupuesto" class="tab oculto">
+    <form id="form-manual" class="panel no-print" autocomplete="off">
+      <fieldset>
+        <legend>Cliente</legend>
+        <label>Nombre <input name="cliente" placeholder="Ej. María Pérez"></label>
+      </fieldset>
+      <fieldset>
+        <legend>Productos</legend>
+        <div id="lineas-manual"></div>
+        <button type="button" id="btn-linea" class="secundario">+ Agregar producto</button>
+      </fieldset>
+      <div id="avisos-manual"></div>
+      <button type="button" id="btn-manual-pdf" class="primario">Descargar presupuesto</button>
+      <p class="ayuda">Los péptidos se cotizan como kit; el agua bacteriostática suelta, a precio de lista. En la ventana de impresión elige <b>“Guardar como PDF”</b>.</p>
+    </form>
+
+    <article id="vista-manual" class="documento"></article>
+  </main>
+
+  <main id="tab-precios" class="tab oculto no-print">
+    <section class="panel ancho">
+      <h2>Precios (USD)</h2>
+      <p class="ayuda">Lista oficial del 13 de agosto de 2026. Cada péptido se vende como kit: precio de lista + recargo (el agua suelta no lleva recargo).
+        Los cambios se guardan en este navegador; usa “Exportar” para tener una copia o pasarlos a otro equipo.</p>
+      <label class="recargo">Recargo por kit <input type="number" id="in-recargo" min="0" step="0.01"></label>
+      <table class="tabla-precios">
+        <thead><tr><th>Producto</th><th>Presentación</th><th>Precio lista</th><th>Precio kit</th></tr></thead>
+        <tbody id="precios"></tbody>
+      </table>
+      <div class="acciones">
+        <button type="button" id="btn-restaurar" class="secundario">Restaurar lista oficial</button>
+        <button type="button" id="btn-exportar" class="secundario">Exportar</button>
+        <label class="secundario boton-archivo">Importar <input type="file" id="in-importar" accept="application/json"></label>
+        <span id="estado-precios" class="ayuda"></span>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/calculos.js"></script>
+  <script src="js/productos.js"></script>
+  <script src="js/precios.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

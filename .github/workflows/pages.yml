@@ -1,0 +1,36 @@
+# Publica la carpeta protocolos/ en GitHub Pages cada vez que cambia en main.
+name: Publicar generador de protocolos
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'protocolos/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tests de cálculos
+        run: node --test protocolos/tests/calculos.test.js
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: protocolos
+      - id: despliegue
+        uses: actions/deploy-pages@v4

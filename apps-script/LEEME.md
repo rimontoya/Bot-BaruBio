@@ -24,7 +24,7 @@ dispositivo, lo ven todos. Se hace una sola vez y lleva unos 10 minutos.
 
 1. En el editor de Apps Script: icono de engranaje **Configuración del proyecto**.
 2. Abajo, en **Propiedades del script → Agregar propiedad**:
-   - Propiedad: `PIN`
+   - Propiedad: PIN (escrito así, en mayúsculas y sin comillas)
    - Valor: el PIN que usarán para editar precios. **Usa al menos 6 caracteres mezclando letras y números**
      (la dirección del script es pública; un PIN corto se puede adivinar probando).
 3. **Guardar propiedades del script**.

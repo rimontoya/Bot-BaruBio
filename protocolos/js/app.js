@@ -565,6 +565,34 @@
     }
   }
 
+  // ---------- Clientes de la hoja (los anota el bot) ----------
+  // Son datos personales: la hoja solo los entrega con el PIN. Sugerencias en los campos "Nombre".
+  async function cargarClientes(pedirPin) {
+    if (!URL_NUBE) return;
+    const pin = leerLocal(CLAVE_PIN) || (pedirPin ? prompt('PIN para ver los clientes de la hoja:') : null);
+    const botones = document.querySelectorAll('[data-cargar-clientes]');
+    botones.forEach((b) => { b.hidden = Boolean(pin); });
+    if (!pin) return;
+    try {
+      const datos = await (await fetch(URL_NUBE, { method: 'POST', body: JSON.stringify({ accion: 'clientes', pin }) })).json();
+      if (!datos.ok) {
+        if (datos.error === 'pin') localStorage.removeItem(CLAVE_PIN);
+        botones.forEach((b) => { b.hidden = false; });
+        if (pedirPin) alert(datos.error === 'pin' ? 'PIN incorrecto.' : 'La hoja no entregó los clientes.');
+        return;
+      }
+      escribirLocal(CLAVE_PIN, pin);
+      $('#lista-clientes').innerHTML = datos.clientes.map((c) => {
+        const detalle = [c.objetivo, c.productos, c.canal].filter(Boolean).join(' · ');
+        return `<option value="${esc(c.nombre)}">${esc(detalle)}</option>`;
+      }).join('');
+    } catch {
+      botones.forEach((b) => { b.hidden = false; });
+    }
+  }
+
+  document.querySelectorAll('[data-cargar-clientes]').forEach((b) => b.addEventListener('click', () => cargarClientes(true)));
+
   $('#precios').addEventListener('change', (ev) => {
     const input = ev.target.closest('input[data-clave]');
     if (!input) return;
@@ -644,6 +672,7 @@
   render();
   renderManual();
   cargarNube();
+  cargarClientes(false);
   // Al volver a la pestaña del navegador, se traen los precios que otros hayan cambiado.
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cargarNube(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { cargarNube(); cargarClientes(false); } });
 })();

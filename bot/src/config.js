@@ -20,6 +20,8 @@ export function leerConfig(entorno) {
     zonaHoraria: entorno.ZONA_HORARIA || 'America/Panama',
     preciosUrl: entorno.PRECIOS_URL || '',
     claveAdmin: entorno.CLAVE_ADMIN || '',
+    // Clave con la que el bot escribe en la pestaña Clientes (propiedad CLAVE_BOT del Apps Script).
+    hojaClaveBot: entorno.HOJA_CLAVE_BOT || '',
   };
 
   const faltan = [];

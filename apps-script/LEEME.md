@@ -46,6 +46,20 @@ Envíame esa URL y la pongo en `protocolos/js/config.js`. A partir de ahí:
 - Al editar un precio en la pestaña **Precios**, pide el PIN la primera vez en cada dispositivo.
 - También se pueden editar precios directamente en la hoja (columna "Precio lista").
 
+## Registro de clientes (pestaña "Clientes")
+
+El bot anota cada cliente en una pestaña **Clientes** de esta misma hoja (se crea sola la primera vez),
+y el generador la usa para sugerir nombres. Los clientes son datos personales: la lectura pública
+solo devuelve precios; la lista de clientes exige el PIN y escribir en ella exige la clave del bot.
+
+Para activarlo, en el editor de Apps Script:
+
+1. Reemplaza todo el código por la versión nueva de `precios.gs` y guarda.
+2. **Configuración del proyecto → Propiedades del script → Agregar propiedad**:
+   - Propiedad: CLAVE_BOT (en mayúsculas y sin comillas)
+   - Valor: la `HOJA_CLAVE_BOT` del archivo `bot/.env`
+3. Publica una versión nueva **sin cambiar la URL** (ver abajo).
+
 ## Si algún día cambias el script
 
 Hay que volver a publicarlo: **Implementar → Gestionar implementaciones → editar (lápiz) →

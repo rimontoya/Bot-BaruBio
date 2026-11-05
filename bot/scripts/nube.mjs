@@ -1,5 +1,5 @@
 // Tareas de la nube, con los valores del .env:
-//   node scripts/nube.mjs secretos   → sube TELEGRAM_TOKEN, GEMINI_API_KEY, CLAVE_ADMIN y WEBHOOK_SECRETO a Cloudflare
+//   node scripts/nube.mjs secretos   → sube los secretos (TELEGRAM_TOKEN, GEMINI_API_KEY, CLAVE_ADMIN, WEBHOOK_SECRETO, HOJA_CLAVE_BOT)
 //   node scripts/nube.mjs importar   → copia datos/estado.json (admins, horario, conversaciones) al bot de la nube
 //   node scripts/nube.mjs webhook    → hace que Telegram entregue los mensajes al bot de la nube
 //   node scripts/nube.mjs dev-vars   → crea .dev.vars para probar la nube en local (npm run nube:local)
@@ -10,7 +10,7 @@ import path from 'node:path';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 process.loadEnvFile(path.join(raiz, '.env'));
-const SECRETOS = ['TELEGRAM_TOKEN', 'GEMINI_API_KEY', 'CLAVE_ADMIN', 'WEBHOOK_SECRETO'];
+const SECRETOS = ['TELEGRAM_TOKEN', 'GEMINI_API_KEY', 'CLAVE_ADMIN', 'WEBHOOK_SECRETO', 'HOJA_CLAVE_BOT'];
 
 function exigir(...nombres) {
   const faltan = nombres.filter((n) => !process.env[n]);

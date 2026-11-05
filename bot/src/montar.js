@@ -6,6 +6,7 @@ import { crearIa } from './ia/index.js';
 import { crearCanalTelegram } from './canales/telegram.js';
 import { crearEnrutador } from './canales/index.js';
 import { crearBot } from './nucleo.js';
+import { crearRegistroHoja } from './registro-clientes.js';
 
 export function montarBot({ entorno, faq, almacen, registro = console }) {
   const config = leerConfig(entorno);
@@ -18,6 +19,7 @@ export function montarBot({ entorno, faq, almacen, registro = console }) {
     canal,
     almacen,
     obtenerConocimiento: crearFuenteConocimiento({ catalogo, faq, preciosUrl: config.preciosUrl, registro }),
+    registroClientes: crearRegistroHoja({ url: config.preciosUrl, clave: config.hojaClaveBot, registro }),
     registro,
   });
   return { config, bot, telegram };

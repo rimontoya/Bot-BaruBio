@@ -1,15 +1,21 @@
-// Precios compartidos del generador de protocolos (Google Apps Script).
-// Ver LEEME.md para instalarlo.
+// Precios compartidos y registro de clientes (Google Apps Script). Ver LEEME.md para instalarlo.
 //
 // Hoja "Precios": Clave | Producto | Presentación | Precio lista (USD)
-//  - GET  → { ok, precios: { clave: número | null } }            (lectura pública)
-//  - POST → body { pin, cambios: { clave: número | null } }      (requiere el PIN)
-// El PIN se guarda en Propiedades del script (clave "PIN"), nunca en el código.
+//  - GET  → { ok, precios }                                           (lectura pública: los precios no son secretos)
+//  - POST { pin, cambios: { clave: número | null } }                  → guarda precios (requiere el PIN)
+// Hoja "Clientes": una fila por cliente del bot, actualizada en cada conversación.
+//  - POST { accion: "cliente", clave, cliente: {...} }                → la escribe el bot (requiere CLAVE_BOT)
+//  - POST { accion: "clientes", pin }                                 → lista para el generador (requiere el PIN)
+// El PIN y la CLAVE_BOT se guardan en Propiedades del script, nunca en el código.
 
 const HOJA = 'Precios';
 const COL_CLAVE = 1;
 const COL_PRECIO = 4;
 const CLAVE_VALIDA = /^([a-z0-9-]+:[0-9.]+|kit:recargo)$/;
+
+const HOJA_CLIENTES = 'Clientes';
+const COLUMNAS_CLIENTES = ['Id', 'Canal', 'Nombre', 'Usuario', 'Objetivo', 'Productos', 'Estado', 'Atiende', 'Resumen', 'Primer contacto', 'Último mensaje'];
+const CANALES = { tg: 'Telegram', wa: 'WhatsApp' };
 
 function doGet() {
   return responder({ ok: true, precios: leerPrecios() });
@@ -22,12 +28,23 @@ function doPost(e) {
   } catch (err) {
     return responder({ ok: false, error: 'formato' });
   }
-  const pin = PropertiesService.getScriptProperties().getProperty('PIN');
+  const propiedades = PropertiesService.getScriptProperties();
+
+  if (datos.accion === 'cliente') {
+    const clave = propiedades.getProperty('CLAVE_BOT');
+    if (!clave || String(datos.clave) !== clave) return responder({ ok: false, error: 'clave' });
+    return conBloqueo(() => {
+      guardarCliente(datos.cliente || {});
+      return responder({ ok: true });
+    });
+  }
+
+  const pin = propiedades.getProperty('PIN');
   if (!pin || String(datos.pin) !== pin) return responder({ ok: false, error: 'pin' });
 
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
-  try {
+  if (datos.accion === 'clientes') return responder({ ok: true, clientes: leerClientes() });
+
+  return conBloqueo(() => {
     const hoja = obtenerHoja();
     const filaDe = {};
     hoja.getDataRange().getValues().forEach((fila, i) => {
@@ -45,10 +62,18 @@ function doPost(e) {
         filaDe[clave] = hoja.getLastRow();
       }
     });
+    return responder({ ok: true, precios: leerPrecios() });
+  });
+}
+
+function conBloqueo(trabajo) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    return trabajo();
   } finally {
     lock.releaseLock();
   }
-  return responder({ ok: true, precios: leerPrecios() });
 }
 
 function leerPrecios() {
@@ -65,6 +90,62 @@ function leerPrecios() {
 function obtenerHoja() {
   const libro = SpreadsheetApp.getActiveSpreadsheet();
   return libro.getSheetByName(HOJA) || libro.insertSheet(HOJA);
+}
+
+// La pestaña "Clientes" se crea sola la primera vez que el bot escribe.
+function obtenerHojaClientes() {
+  const libro = SpreadsheetApp.getActiveSpreadsheet();
+  let hoja = libro.getSheetByName(HOJA_CLIENTES);
+  if (!hoja) {
+    hoja = libro.insertSheet(HOJA_CLIENTES);
+    hoja.getRange(1, 1, 1, COLUMNAS_CLIENTES.length).setValues([COLUMNAS_CLIENTES])
+      .setFontWeight('bold').setBackground('#0a1f47').setFontColor('#ffffff');
+    hoja.setFrozenRows(1);
+    hoja.getRange('A:A').setFontColor('#9aa6ba');
+    hoja.getRange('J:K').setNumberFormat('dd/mm/yyyy hh:mm');
+  }
+  return hoja;
+}
+
+function guardarCliente(c) {
+  const id = String(c.id || '').trim();
+  if (!/^[a-z]+_[-\w]+$/.test(id)) return;
+  const fila = [
+    id,
+    CANALES[id.split('_')[0]] || id.split('_')[0],
+    c.nombre || '',
+    c.usuario ? `@${c.usuario}` : '',
+    c.objetivo || '',
+    (c.productos || []).join(', '),
+    c.estado || '',
+    c.modo === 'humano' ? 'Asesor' : 'Bot',
+    c.resumen || '',
+    c.creada ? new Date(c.creada) : '',
+    c.actualizada ? new Date(c.actualizada) : new Date(),
+  ];
+  const hoja = obtenerHojaClientes();
+  const ids = hoja.getRange(1, 1, Math.max(hoja.getLastRow(), 1), 1).getValues().map((f) => String(f[0]));
+  const i = ids.indexOf(id);
+  if (i > 0) hoja.getRange(i + 1, 1, 1, fila.length).setValues([fila]);
+  else hoja.appendRow(fila);
+}
+
+// Para el generador: nombre y datos útiles, del más reciente al más antiguo.
+function leerClientes() {
+  const hoja = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(HOJA_CLIENTES);
+  if (!hoja) return [];
+  return hoja.getDataRange().getValues().slice(1)
+    .filter((f) => f[2])
+    .map((f) => ({
+      nombre: String(f[2]),
+      usuario: String(f[3]),
+      canal: String(f[1]),
+      objetivo: String(f[4]),
+      productos: String(f[5]),
+      estado: String(f[6]),
+      actualizada: f[10] instanceof Date ? f[10].toISOString() : '',
+    }))
+    .sort((a, b) => b.actualizada.localeCompare(a.actualizada));
 }
 
 function responder(objeto) {

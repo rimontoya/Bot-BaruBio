@@ -20,7 +20,9 @@ export const ESQUEMA_RESPUESTA = {
 
 const capital = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
-export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, reloj = () => new Date(), registro = console }) {
+export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, registroClientes = null, reloj = () => new Date(), registro = console }) {
+  // Registro de clientes en la hoja de Google (opcional).
+  const anotar = async (conv) => { await registroClientes?.anotar(conv); };
   const reglasHorario = () => parsearHorario(almacen.datos.horario || config.horario);
 
   function momento() {
@@ -83,6 +85,7 @@ export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, relo
     if (conv.modo === 'humano') {
       almacen.agregarMensaje(conv, 'cliente', msg.texto);
       await avisarAdmins(`💬 ${etiquetaCliente(conv)}:\n${msg.texto}\n\n↩️ Responde a este mensaje para contestarle.`, conv.chatId);
+      await anotar(conv);
       return;
     }
 
@@ -108,6 +111,7 @@ export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, relo
       await canal.enviar(msg.chatId, aviso);
       await derivar(conv, `Error técnico del bot (${e.message.slice(0, 80)})`);
       almacen.guardar();
+      await anotar(conv);
       return;
     }
 
@@ -124,6 +128,7 @@ export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, relo
     await canal.enviar(msg.chatId, r.respuesta);
     if (r.accion === 'derivar') await derivar(conv, r.motivo);
     almacen.guardar();
+    await anotar(conv);
   }
 
   const AYUDA_ADMIN = `Comandos de admin:
@@ -147,6 +152,7 @@ Si escribes sin responder a un aviso, hablas con el bot como un cliente (sirve p
       if (!conv) return listo('No encuentro ese cliente.');
       conv.modo = 'bot';
       almacen.guardar();
+      await anotar(conv);
       return listo(`✅ El bot vuelve a atender a ${etiquetaCliente(conv)}.`);
     }
     if (texto === '/clientes') {
@@ -182,6 +188,7 @@ Si escribes sin responder a un aviso, hablas con el bot como un cliente (sirve p
       almacen.agregarMensaje(conv, 'asesor', msg.texto);
       await canal.enviar(cliente, `${capital(config.asesor)}:\n${msg.texto}`);
       almacen.guardar();
+      await anotar(conv);
       return true;
     }
     return false;

@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=20261105b">
-  <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=20261105b">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=20261105c">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=20261105c">
   <!-- Vista previa al compartir el enlace (WhatsApp, iMessage, Telegram…) -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="es_PA">
@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@500;600;700;800&display=swap">
-  <link rel="stylesheet" href="css/app.css?v=20261105b">
+  <link rel="stylesheet" href="css/app.css?v=20261105c">
 </head>
 <body>
   <header class="barra no-print">
@@ -40,7 +40,8 @@
     <form id="form" class="panel no-print" autocomplete="off">
       <fieldset>
         <legend>Cliente</legend>
-        <label>Nombre <input name="cliente" placeholder="Ej. María Pérez"></label>
+        <label>Nombre <input name="cliente" placeholder="Ej. María Pérez" list="lista-clientes"></label>
+        <button type="button" class="enlace-clientes" data-cargar-clientes hidden>Ver clientes de la hoja</button>
         <label>Objetivo <input name="objetivo"></label>
       </fieldset>
 
@@ -92,7 +93,8 @@
     <form id="form-manual" class="panel no-print" autocomplete="off">
       <fieldset>
         <legend>Cliente</legend>
-        <label>Nombre <input name="cliente" placeholder="Ej. María Pérez"></label>
+        <label>Nombre <input name="cliente" placeholder="Ej. María Pérez" list="lista-clientes"></label>
+        <button type="button" class="enlace-clientes" data-cargar-clientes hidden>Ver clientes de la hoja</button>
       </fieldset>
       <fieldset>
         <legend>Productos</legend>
@@ -126,10 +128,12 @@
     </section>
   </main>
 
-  <script src="js/calculos.js?v=20261105b"></script>
-  <script src="js/productos.js?v=20261105b"></script>
-  <script src="js/precios.js?v=20261105b"></script>
-  <script src="js/config.js?v=20261105b"></script>
-  <script src="js/app.js?v=20261105b"></script>
+  <datalist id="lista-clientes"></datalist>
+
+  <script src="js/calculos.js?v=20261105c"></script>
+  <script src="js/productos.js?v=20261105c"></script>
+  <script src="js/precios.js?v=20261105c"></script>
+  <script src="js/config.js?v=20261105c"></script>
+  <script src="js/app.js?v=20261105c"></script>
 </body>
 </html>

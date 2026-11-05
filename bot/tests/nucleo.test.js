@@ -130,3 +130,28 @@ test('admins: clave incorrecta, cambio de horario y mensajes que no son texto', 
   await bot.recibir({ chatId: '2', texto: '', esTexto: false });
   assert.match(enviados.at(-1).texto, /solo puedo leer mensajes de texto/);
 });
+
+test('cada respuesta anota al cliente en la hoja, con su estado y quién le atiende', async () => {
+  const anotados = [];
+  const almacen = crearAlmacenMemoria();
+  const respuestas = [
+    r('Hola, ¿qué busca?', { estado: 'curioso' }),
+    r('Le paso con su asesor personal.', { accion: 'derivar', estado: 'calificado', nombre: 'Ana', objetivo: 'Piel' }),
+  ];
+  const bot = crearBot({
+    config: CONFIG,
+    ia: { generar: async () => ({ datos: respuestas.shift(), modelo: 'falso' }) },
+    canal: { enviar: async () => 1 },
+    almacen,
+    obtenerConocimiento: async () => '',
+    registroClientes: { anotar: async (conv) => anotados.push({ estado: conv.lead.estado, modo: conv.modo, nombre: conv.lead.nombre }) },
+    reloj: () => JUEVES_10AM,
+    registro: { warn() {}, error() {} },
+  });
+  await bot.recibir(msg('tg_1', 'Hola'));
+  await bot.recibir(msg('tg_1', 'Quiero comprar'));
+  assert.deepEqual(anotados, [
+    { estado: 'curioso', modo: 'bot', nombre: '' },
+    { estado: 'calificado', modo: 'humano', nombre: 'Ana' },
+  ]);
+});

@@ -1,12 +1,10 @@
-/**
- * Precios compartidos del generador de protocolos (Google Apps Script).
- * Ver LEEME.md para instalarlo.
- *
- * Hoja "Precios": Clave | Producto | Presentación | Precio lista (USD)
- *  - GET  → { ok, precios: { clave: número | null } }            (lectura pública)
- *  - POST → body { pin, cambios: { clave: número | null } }      (requiere el PIN)
- * El PIN se guarda en Propiedades del script (clave "PIN"), nunca en el código.
- */
+// Precios compartidos del generador de protocolos (Google Apps Script).
+// Ver LEEME.md para instalarlo.
+//
+// Hoja "Precios": Clave | Producto | Presentación | Precio lista (USD)
+//  - GET  → { ok, precios: { clave: número | null } }            (lectura pública)
+//  - POST → body { pin, cambios: { clave: número | null } }      (requiere el PIN)
+// El PIN se guarda en Propiedades del script (clave "PIN"), nunca en el código.
 
 const HOJA = 'Precios';
 const COL_CLAVE = 1;
@@ -73,7 +71,7 @@ function responder(objeto) {
   return ContentService.createTextOutput(JSON.stringify(objeto)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Ejecutar UNA vez: crea la hoja "Precios" con la lista oficial (13 de agosto de 2026). */
+// Ejecutar UNA vez: crea la hoja "Precios" con la lista oficial (13 de agosto de 2026).
 function inicializar() {
   const hoja = obtenerHoja();
   if (hoja.getLastRow() > 1) throw new Error('La hoja "Precios" ya tiene datos: no se sobrescribe.');

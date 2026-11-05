@@ -1,4 +1,4 @@
-// Varios canales a la vez (Telegram y, más adelante, WhatsApp): cada mensaje sale por el canal
+// Varios canales a la vez (Telegram y WhatsApp): cada mensaje sale por el canal
 // al que pertenece el chat, según el prefijo de su chatId ("tg_…", "wa_…").
 export function crearEnrutador(canales) {
   const porPrefijo = Object.fromEntries(canales.map((c) => [c.prefijo, c]));
@@ -9,6 +9,6 @@ export function crearEnrutador(canales) {
   };
   return {
     enviar: (chatId, texto, opciones) => canalDe(chatId).enviar(chatId, texto, opciones),
-    escribiendo: (chatId) => canalDe(chatId).escribiendo?.(chatId),
+    escribiendo: (chatId, idMensaje) => canalDe(chatId).escribiendo?.(chatId, idMensaje),
   };
 }

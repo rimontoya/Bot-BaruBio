@@ -4,8 +4,15 @@
 
 export function leerConfig(entorno) {
   const c = {
-    canal: entorno.CANAL || 'telegram',
     telegramToken: entorno.TELEGRAM_TOKEN || '',
+    // WhatsApp queda activo si están sus credenciales; convive con Telegram.
+    whatsapp: {
+      token: entorno.WHATSAPP_TOKEN || '',
+      numeroId: entorno.WHATSAPP_NUMERO_ID || '',
+      secretoApp: entorno.WHATSAPP_SECRETO_APP || '',
+      verificacion: entorno.WHATSAPP_VERIFICACION || '',
+      version: entorno.WHATSAPP_API_VERSION || 'v23.0',
+    },
     ia: {
       proveedor: entorno.IA_PROVEEDOR || 'gemini',
       modelo: entorno.IA_MODELO || 'gemini-3.5-flash-lite',
@@ -25,7 +32,11 @@ export function leerConfig(entorno) {
   };
 
   const faltan = [];
-  if (c.canal === 'telegram' && !c.telegramToken) faltan.push('TELEGRAM_TOKEN');
+  const w = c.whatsapp;
+  if (!c.telegramToken && !w.token) faltan.push('TELEGRAM_TOKEN o WHATSAPP_TOKEN');
+  if (w.token) for (const [clave, nombre] of [['numeroId', 'WHATSAPP_NUMERO_ID'], ['secretoApp', 'WHATSAPP_SECRETO_APP'], ['verificacion', 'WHATSAPP_VERIFICACION']]) {
+    if (!w[clave]) faltan.push(nombre);
+  }
   if (c.ia.proveedor === 'gemini' && !c.ia.geminiClave) faltan.push('GEMINI_API_KEY');
   if (!c.claveAdmin) faltan.push('CLAVE_ADMIN');
   if (faltan.length) throw new Error(`Faltan variables de configuración: ${faltan.join(', ')}`);

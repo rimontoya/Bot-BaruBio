@@ -1,10 +1,11 @@
 // Arranque en la nube (Cloudflare Workers).
-// - El Worker recibe los mensajes de Telegram (webhook), comprueba la firma y responde enseguida.
+// - El Worker recibe los mensajes de Telegram y WhatsApp (webhooks), comprueba la firma y responde enseguida.
 // - El Durable Object "EstadoBot" guarda el estado y procesa los mensajes de uno en uno.
 import { DurableObject } from 'cloudflare:workers';
 import faq from '../conocimiento/preguntas-frecuentes.md';
 import { crearAlmacen, datosVacios, migrarAPrefijos } from './almacen.js';
 import { mensajeDeUpdate } from './canales/telegram.js';
+import { mensajesDeAviso, firmaValida } from './canales/whatsapp.js';
 import { montarBot } from './montar.js';
 
 const CLAVE_META = 'meta';
@@ -85,6 +86,24 @@ export default {
       // Se responde a Telegram enseguida; el mensaje se procesa en segundo plano.
       if (msg) ctx.waitUntil(estado(env).recibir(msg).catch((e) => console.error(e)));
       return new Response('ok');
+    }
+
+    // WhatsApp: Meta comprueba la URL una vez con un GET y luego entrega los mensajes con POST firmados.
+    if (url.pathname === '/whatsapp') {
+      if (request.method === 'GET') {
+        const p = url.searchParams;
+        const ok = p.get('hub.mode') === 'subscribe' && env.WHATSAPP_VERIFICACION && p.get('hub.verify_token') === env.WHATSAPP_VERIFICACION;
+        return ok ? new Response(p.get('hub.challenge')) : new Response('No autorizado', { status: 403 });
+      }
+      if (request.method === 'POST') {
+        const cuerpo = await request.text();
+        if (!(await firmaValida(cuerpo, request.headers.get('X-Hub-Signature-256'), env.WHATSAPP_SECRETO_APP))) {
+          return new Response('No autorizado', { status: 401 });
+        }
+        const mensajes = mensajesDeAviso(JSON.parse(cuerpo));
+        if (mensajes.length) ctx.waitUntil(Promise.all(mensajes.map((m) => estado(env).recibir(m).catch((e) => console.error(e)))));
+        return new Response('ok');
+      }
     }
 
     // Tareas de administración (las usan los scripts de npm), protegidas con CLAVE_ADMIN.

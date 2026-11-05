@@ -4,15 +4,17 @@ import { catalogo } from './catalogo.js';
 import { crearFuenteConocimiento } from './conocimiento.js';
 import { crearIa } from './ia/index.js';
 import { crearCanalTelegram } from './canales/telegram.js';
+import { crearCanalWhatsapp } from './canales/whatsapp.js';
 import { crearEnrutador } from './canales/index.js';
 import { crearBot } from './nucleo.js';
 import { crearRegistroHoja } from './registro-clientes.js';
 
 export function montarBot({ entorno, faq, almacen, registro = console }) {
   const config = leerConfig(entorno);
-  const telegram = crearCanalTelegram({ token: config.telegramToken, registro });
-  // Aquí se sumará WhatsApp: los dos canales quedan activos a la vez.
-  const canal = crearEnrutador([telegram]);
+  // Cada canal con credenciales queda activo; todos a la vez.
+  const telegram = config.telegramToken ? crearCanalTelegram({ token: config.telegramToken, registro }) : null;
+  const whatsapp = config.whatsapp.token ? crearCanalWhatsapp(config.whatsapp) : null;
+  const canal = crearEnrutador([telegram, whatsapp].filter(Boolean));
   const bot = crearBot({
     config,
     ia: crearIa(config.ia),
@@ -22,5 +24,5 @@ export function montarBot({ entorno, faq, almacen, registro = console }) {
     registroClientes: crearRegistroHoja({ url: config.preciosUrl, clave: config.hojaClaveBot, registro }),
     registro,
   });
-  return { config, bot, telegram };
+  return { config, bot, telegram, whatsapp };
 }

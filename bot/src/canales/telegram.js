@@ -1,8 +1,8 @@
 // Canal Telegram. Interfaz común de los canales:
 //   prefijo                                → los chatId de este canal empiezan por "<prefijo>_"
 //   enviar(chatId, texto, { responderA }) → id del mensaje enviado
-//   escribiendo(chatId)                    → indicador "escribiendo…" (opcional)
-// Mensajes normalizados que entrega al bot: { chatId, nombre, usuario, texto, esTexto, respuestaA }
+//   escribiendo(chatId, idMensaje)         → indicador "escribiendo…" (opcional)
+// Mensajes normalizados que entrega al bot: { chatId, nombre, usuario, texto, esTexto, respuestaA, idMensaje? }
 const LIMITE_TEXTO = 4000;
 export const PREFIJO_TELEGRAM = 'tg';
 

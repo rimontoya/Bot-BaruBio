@@ -51,7 +51,7 @@ export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, regi
     almacen.guardar();
   }
 
-  const etiquetaCliente = (conv) => `${conv.lead?.nombre || conv.nombre || 'Cliente'}${conv.usuario ? ` (@${conv.usuario})` : ''}`;
+  const etiquetaCliente = (conv) => `${conv.lead?.nombre || conv.nombre || 'Cliente'}${conv.usuario ? ` (${conv.usuario.startsWith('+') ? '' : '@'}${conv.usuario})` : ''}`;
 
   async function derivar(conv, motivo) {
     conv.modo = 'humano';
@@ -91,7 +91,7 @@ export function crearBot({ config, ia, canal, almacen, obtenerConocimiento, regi
 
     const primerMensaje = conv.historial.length === 0;
     almacen.agregarMensaje(conv, 'cliente', msg.texto);
-    await canal.escribiendo?.(msg.chatId);
+    await canal.escribiendo?.(msg.chatId, msg.idMensaje);
 
     const m = momento();
     let resultado;

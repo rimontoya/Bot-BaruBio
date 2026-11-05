@@ -17,6 +17,7 @@ const { config, bot, telegram } = montarBot({
   almacen: crearAlmacenArchivo(path.resolve(raiz, process.env.DATOS_DIR || './datos')),
 });
 
+if (!telegram) throw new Error('El modo local solo escucha Telegram: falta TELEGRAM_TOKEN en .env');
 console.log(`Bot en marcha (local) · IA ${config.ia.proveedor}/${config.ia.modelo}. Ctrl+C para detener.`);
 console.warn('Aviso: el modo local desactiva el webhook de la nube. Al terminar: npm run nube:webhook');
 await telegram.escuchar(async (msg) => {

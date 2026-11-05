@@ -143,7 +143,7 @@ Si escribes sin responder a un aviso, hablas con el bot como un cliente (sirve p
 
     const reactivar = texto.match(/^\/reactivar_(\S+)/);
     if (reactivar) {
-      const conv = almacen.datos.conversaciones[reactivar[1]];
+      const conv = almacen.conversacionExistente(reactivar[1]);
       if (!conv) return listo('No encuentro ese cliente.');
       conv.modo = 'bot';
       almacen.guardar();

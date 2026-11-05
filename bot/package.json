@@ -3,9 +3,22 @@
   "private": true,
   "type": "module",
   "description": "Bot de atención: filtra consultas y pasa los clientes interesados a una persona.",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node src/local.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "nube:local": "node scripts/nube.mjs dev-vars && wrangler dev",
+    "nube:publicar": "wrangler deploy",
+    "nube:secretos": "node scripts/nube.mjs secretos",
+    "nube:importar": "node scripts/nube.mjs importar",
+    "nube:webhook": "node scripts/nube.mjs webhook"
+  },
+  "devDependencies": {
+    "wrangler": "^4.158.0"
+  },
+  "allowScripts": {
+    "workerd@1.20261104.1": true
   }
 }

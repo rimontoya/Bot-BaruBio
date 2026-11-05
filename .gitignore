@@ -7,6 +7,9 @@ protocolosV1/
 # Bot: claves y conversaciones de clientes. Nunca al repositorio.
 bot/.env
 bot/datos/
+bot/node_modules/
+bot/.wrangler/
+bot/.dev.vars
 
 # Sistema
 Thumbs.db

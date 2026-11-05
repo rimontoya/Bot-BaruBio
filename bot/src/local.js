@@ -1,42 +1,25 @@
 // Arranque local (pruebas): el bot corre en este equipo y consulta Telegram continuamente.
-// En producción se reemplaza por un punto de arranque en la nube que recibe los mensajes por webhook.
-import { cargarConfig } from './config.js';
-import { crearIa } from './ia/index.js';
-import { crearCanalTelegram } from './canales/telegram.js';
-import { crearAlmacenArchivo } from './almacen.js';
-import { cargarCatalogo, obtenerPrecios, construirConocimiento } from './conocimiento.js';
-import { crearBot } from './nucleo.js';
+// OJO: mientras corre, desactiva el webhook de la nube; al terminar hay que volver a configurarlo
+// con `npm run nube:webhook`.
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { crearAlmacenArchivo } from './almacen-archivo.js';
+import { montarBot } from './montar.js';
 
-const REFRESCO_PRECIOS_MS = 10 * 60 * 1000;
+const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const archivoEnv = path.join(raiz, '.env');
+if (existsSync(archivoEnv)) process.loadEnvFile(archivoEnv);
 
-const config = cargarConfig();
-const catalogo = cargarCatalogo();
-
-// El conocimiento se rehace cada 10 minutos para tomar los precios nuevos de la hoja.
-let conocimiento = null;
-let refrescado = 0;
-async function obtenerConocimiento() {
-  if (!conocimiento || Date.now() - refrescado > REFRESCO_PRECIOS_MS) {
-    const precios = await obtenerPrecios(config.preciosUrl);
-    if (!precios) console.warn('[precios] no se pudo leer la hoja: se usa la lista oficial');
-    conocimiento = construirConocimiento(catalogo, precios);
-    refrescado = Date.now();
-  }
-  return conocimiento;
-}
-
-const canal = crearCanalTelegram({ token: config.telegramToken });
-const bot = crearBot({
-  config,
-  ia: crearIa(config.ia),
-  canal,
-  almacen: crearAlmacenArchivo(config.datosDir),
-  obtenerConocimiento,
+const { config, bot, telegram } = montarBot({
+  entorno: process.env,
+  faq: readFileSync(path.join(raiz, 'conocimiento/preguntas-frecuentes.md'), 'utf8'),
+  almacen: crearAlmacenArchivo(path.resolve(raiz, process.env.DATOS_DIR || './datos')),
 });
 
-await obtenerConocimiento();
-console.log(`Bot en marcha · canal ${config.canal} · IA ${config.ia.proveedor}/${config.ia.modelo}. Ctrl+C para detener.`);
-await canal.escuchar(async (msg) => {
+console.log(`Bot en marcha (local) · IA ${config.ia.proveedor}/${config.ia.modelo}. Ctrl+C para detener.`);
+console.warn('Aviso: el modo local desactiva el webhook de la nube. Al terminar: npm run nube:webhook');
+await telegram.escuchar(async (msg) => {
   console.log(`[${new Date().toLocaleTimeString('es-PA')}] ${msg.nombre || msg.chatId}: ${msg.texto.slice(0, 80)}`);
   await bot.recibir(msg);
 });

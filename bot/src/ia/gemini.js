@@ -19,7 +19,7 @@ function aEsquemaGemini(esquema) {
 const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const MAX_INTENTOS = 5;
 
-export function crearIaGemini({ clave, modelo, respaldos = [], fetchFn = globalThis.fetch, pausaReintento = 1000, registro = console }) {
+export function crearIaGemini({ clave, modelo, respaldos = [], fetchFn = (...a) => fetch(...a), pausaReintento = 1000, registro = console }) {
   async function llamar(nombreModelo, cuerpo) {
     let r;
     try {

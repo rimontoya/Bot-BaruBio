@@ -15,6 +15,23 @@ npm test
 
 Requiere Node 22 o superior. No tiene dependencias externas.
 
+## En la nube (Cloudflare Workers, plan gratuito)
+
+Una sola vez: cuenta en Cloudflare y `npx wrangler login`. Después:
+
+```bash
+npm run nube:publicar   # sube el código; muestra la URL → ponerla en NUBE_URL del .env
+npm run nube:secretos   # sube TELEGRAM_TOKEN, GEMINI_API_KEY, CLAVE_ADMIN y WEBHOOK_SECRETO
+npm run nube:importar   # (opcional) copia admins, horario y conversaciones del modo local
+npm run nube:webhook    # Telegram empieza a entregar los mensajes a la nube
+```
+
+Para probar la versión de la nube en este equipo: `npm run nube:local`.
+**Ojo:** `npm start` (modo local) desactiva el webhook; al terminar, `npm run nube:webhook`.
+
+Los chats llevan el canal en su id (`tg_…`, más adelante `wa_…`), así que Telegram y WhatsApp
+funcionan a la vez con el mismo bot.
+
 ## Admins
 
 En el chat del bot: `/admin CLAVE` (la `CLAVE_ADMIN` del `.env`). Los admins:

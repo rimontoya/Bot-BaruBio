@@ -1,0 +1,35 @@
+# Bot en Cloudflare Workers (plan gratuito). Publicar: npm run nube:publicar
+name = "bot-barubio"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+# Estado del bot (admins, horario, conversaciones) en un Durable Object con SQLite (incluido en el plan gratuito).
+[[durable_objects.bindings]]
+name = "ESTADO"
+class_name = "EstadoBot"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["EstadoBot"]
+
+# Las preguntas frecuentes (.md) se incluyen como texto.
+[[rules]]
+type = "Text"
+globs = ["**/*.md"]
+fallthrough = true
+
+[observability]
+enabled = true
+
+# Configuración no secreta. Los secretos (TELEGRAM_TOKEN, GEMINI_API_KEY, CLAVE_ADMIN, WEBHOOK_SECRETO)
+# se cargan con `npm run nube:secretos` desde el .env, nunca aquí.
+[vars]
+CANAL = "telegram"
+IA_PROVEEDOR = "gemini"
+IA_MODELO = "gemini-3.5-flash-lite"
+IA_MODELOS_RESPALDO = "gemini-3.1-flash-lite,gemini-flash-lite-latest"
+NEGOCIO = "Barü Bio"
+ASESOR = "su asesor personal"
+HORARIO = "lun-vie 09:00-12:00 15:00-19:00"
+ZONA_HORARIA = "America/Panama"
+PRECIOS_URL = "https://script.google.com/macros/s/AKfycbw0Kegl3S_WVj54Hng2fzMOdQiyfSqgrdgIdW-ntPrqBgNYeWgeDz9ccCDrruF6pz4/exec"

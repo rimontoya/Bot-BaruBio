@@ -64,9 +64,45 @@
     $('#sel-producto').innerHTML = opcionesProductos(false);
   }
 
-  function filaEtapa({ semanas = '', valor = '', unidad = 'mg' } = {}) {
+  // ---------- Dosis en UI ----------
+  // Las UI dependen de la dilución (presentación y agua). Cada etapa guarda su dosis real en mg
+  // (data-mg): si cambian la presentación o el agua, las UI se recalculan y la dosis en mg no cambia.
+  const concentracionActual = () => {
+    const agua = Number(form.aguaMl.value);
+    return agua > 0 ? C.reconstitucion(Number(form.vialMg.value), agua).concMgMl : null;
+  };
+  const redondear = (n, dec) => Number(n.toFixed(dec));
+  const DECIMALES = { mg: 3, mcg: 1, ui: 1 };
+  const desdeMg = (mg, unidad, conc) => (unidad === 'mg' ? mg : unidad === 'mcg' ? mg * 1000 : C.dosis(mg, conc).ui);
+
+  function recordarMg(fila) {
+    const conc = concentracionActual();
+    const valor = parseFloat(fila.querySelector('.e-valor').value);
+    if (conc && valor > 0) fila.dataset.mg = C.aMg(valor, fila.querySelector('.e-unidad').value, conc);
+    else delete fila.dataset.mg;
+  }
+
+  function ajustarUiAConcentracion() {
+    const conc = concentracionActual();
+    if (!conc) return;
+    document.querySelectorAll('.etapa').forEach((fila) => {
+      if (fila.querySelector('.e-unidad').value === 'ui' && fila.dataset.mg) {
+        fila.querySelector('.e-valor').value = redondear(desdeMg(Number(fila.dataset.mg), 'ui', conc), DECIMALES.ui);
+      }
+    });
+  }
+
+  // Al cambiar la unidad de una etapa, el número se convierte (la dosis en mg es la misma).
+  function cambiarUnidad(fila) {
+    const unidad = fila.querySelector('.e-unidad').value;
+    const conc = concentracionActual();
+    if (fila.dataset.mg && conc) fila.querySelector('.e-valor').value = redondear(desdeMg(Number(fila.dataset.mg), unidad, conc), DECIMALES[unidad]);
+  }
+
+  function filaEtapa({ semanas = '', valor = '', unidad = 'ui', mg } = {}) {
     const div = document.createElement('div');
     div.className = 'etapa';
+    if (mg) div.dataset.mg = mg;
     div.innerHTML = `
       <label>Semanas <input type="number" class="e-semanas" min="1" step="1" value="${semanas}"></label>
       <label>Dosis <input type="number" class="e-valor" min="0" step="any" value="${valor}"></label>
@@ -95,7 +131,11 @@
     form.vialMg.value = sugerida.mg;
     form.aguaMl.value = sugerida.aguaMl;
     form.objetivo.value = p.objetivo;
-    ponerEtapas(p.etapasSugeridas ? p.etapasSugeridas.map((x) => ({ semanas: x.semanas, valor: x.mg, unidad: 'mg' })) : [{}]);
+    // Las dosis de las fichas están en mg; se muestran en UI para la presentación y el agua sugeridas.
+    const conc = concentracionActual();
+    ponerEtapas(p.etapasSugeridas
+      ? p.etapasSugeridas.map((x) => ({ semanas: x.semanas, mg: x.mg, valor: redondear(desdeMg(x.mg, 'ui', conc), DECIMALES.ui) }))
+      : [{}]);
     ponerDias(p.frecuenciaSugerida || []);
     form.estabilidadDias.value = p.estabilidadDias || ESTABILIDAD_POR_DEFECTO;
   }
@@ -116,7 +156,8 @@
       const semanas = parseInt(fila.querySelector('.e-semanas').value, 10);
       const valor = parseFloat(fila.querySelector('.e-valor').value);
       const unidad = fila.querySelector('.e-unidad').value;
-      const mg = rec && valor > 0 ? C.aMg(valor, unidad, rec.concMgMl) : null;
+      // La dosis exacta guardada evita los redondeos de las UI mostradas.
+      const mg = !rec || !(valor > 0) ? null : fila.dataset.mg ? Number(fila.dataset.mg) : C.aMg(valor, unidad, rec.concMgMl);
       return { semanas: semanas > 0 ? semanas : null, mg, d: mg ? C.dosis(mg, rec.concMgMl) : null };
     });
     const dias = [...document.querySelectorAll('#dias input:checked')].map((i) => Number(i.value));
@@ -739,10 +780,15 @@
     document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('oculto', t.id !== `tab-${b.dataset.tab}`));
   }));
 
-  form.addEventListener('input', render);
+  form.addEventListener('input', (ev) => {
+    if (ev.target.classList.contains('e-valor')) recordarMg(ev.target.closest('.etapa'));
+    else if (ev.target === form.aguaMl) ajustarUiAConcentracion();
+    render();
+  });
   form.addEventListener('change', (ev) => {
     if (ev.target === form.producto) alCambiarProducto();
-    else if (ev.target === form.vialMg) alCambiarVial();
+    else if (ev.target === form.vialMg) { alCambiarVial(); ajustarUiAConcentracion(); }
+    else if (ev.target.classList.contains('e-unidad')) cambiarUnidad(ev.target.closest('.etapa'));
     render();
   });
   form.addEventListener('click', (ev) => {

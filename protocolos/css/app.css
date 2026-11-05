@@ -73,8 +73,6 @@ label.check input { width: auto; margin: 0; accent-color: var(--azul); }
 .boton-ancho { display: block; width: 100%; margin-top: 8px; padding: 11px; border-radius: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .08em; }
 .secundario:disabled { color: #9aa6ba; border-color: #e1e7f0; background: #f4f6fa; cursor: not-allowed; }
 .ayuda { color: var(--gris); font-size: 12px; }
-.enlace-clientes { border: 0; background: none; padding: 0; margin: -2px 0 6px; color: var(--azul); font: 600 12px var(--cuerpo); cursor: pointer; text-decoration: underline; }
-.enlace-clientes[hidden] { display: none; }
 .aviso { padding: 9px 12px; border-radius: 8px; margin-bottom: 8px; font-size: 13px; background: var(--hielo); border-left: 3px solid var(--azul-vivo); }
 .aviso.error { background: var(--error-fondo); border-color: var(--error); color: var(--error); }
 
@@ -160,6 +158,17 @@ label.recargo input { width: 110px; margin: 0; }
   .tab { padding: 10px; gap: 14px; }
   .panel { padding: 14px; }
 }
+
+/* ---------- Pantalla de entrada (PIN) ---------- */
+body.bloqueada > :not(#bloqueo) { display: none !important; }
+.bloqueo { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--degradado); }
+.bloqueo[hidden] { display: none; }
+.bloqueo-caja { width: 100%; max-width: 360px; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 12px 40px rgba(0,0,0,.35); text-align: center; }
+.bloqueo-caja .logo { height: 34px; margin: 0 auto 6px; filter: drop-shadow(0 0 0 transparent); background: var(--marino-800); padding: 8px 14px; border-radius: 10px; box-sizing: content-box; }
+.bloqueo-caja h1 { margin: 14px 0 18px; font: 800 16px var(--titulos); color: var(--marino-800); text-transform: uppercase; letter-spacing: .08em; }
+.bloqueo-caja label { text-align: left; }
+.bloqueo-caja .aviso { text-align: left; }
+.bloqueo-caja .primario { margin-top: 8px; }
 
 /* ---------- Impresión ---------- */
 @page { size: letter; margin: 10mm 0; }

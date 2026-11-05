@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=20261105c">
-  <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=20261105c">
+  <link rel="icon" type="image/png" sizes="32x32" href="img/favicon-32.png?v=20261105d">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png?v=20261105d">
   <!-- Vista previa al compartir el enlace (WhatsApp, iMessage, Telegram…) -->
   <meta property="og:type" content="website">
   <meta property="og:locale" content="es_PA">
@@ -20,9 +20,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Montserrat:wght@500;600;700;800&display=swap">
-  <link rel="stylesheet" href="css/app.css?v=20261105c">
+  <link rel="stylesheet" href="css/app.css?v=20261105d">
 </head>
-<body>
+<body class="bloqueada">
+  <div id="bloqueo" class="bloqueo no-print" hidden>
+    <form id="form-bloqueo" class="bloqueo-caja" autocomplete="off">
+      <img class="logo" src="img/logo.png" alt="Barü Bio">
+      <h1>Generador de Protocolos</h1>
+      <label>PIN <input type="password" id="in-pin" autocomplete="current-password" autofocus></label>
+      <p id="error-pin" class="aviso error" hidden></p>
+      <button type="submit" class="primario">Entrar</button>
+    </form>
+  </div>
+
   <header class="barra no-print">
     <div class="titulo">
       <img class="logo" src="img/logo.png" alt="Barü Bio">
@@ -41,7 +51,6 @@
       <fieldset>
         <legend>Cliente</legend>
         <label>Nombre <input name="cliente" placeholder="Ej. María Pérez" list="lista-clientes"></label>
-        <button type="button" class="enlace-clientes" data-cargar-clientes hidden>Ver clientes de la hoja</button>
         <label>Objetivo <input name="objetivo"></label>
       </fieldset>
 
@@ -94,7 +103,6 @@
       <fieldset>
         <legend>Cliente</legend>
         <label>Nombre <input name="cliente" placeholder="Ej. María Pérez" list="lista-clientes"></label>
-        <button type="button" class="enlace-clientes" data-cargar-clientes hidden>Ver clientes de la hoja</button>
       </fieldset>
       <fieldset>
         <legend>Productos</legend>
@@ -130,10 +138,10 @@
 
   <datalist id="lista-clientes"></datalist>
 
-  <script src="js/calculos.js?v=20261105c"></script>
-  <script src="js/productos.js?v=20261105c"></script>
-  <script src="js/precios.js?v=20261105c"></script>
-  <script src="js/config.js?v=20261105c"></script>
-  <script src="js/app.js?v=20261105c"></script>
+  <script src="js/calculos.js?v=20261105d"></script>
+  <script src="js/productos.js?v=20261105d"></script>
+  <script src="js/precios.js?v=20261105d"></script>
+  <script src="js/config.js?v=20261105d"></script>
+  <script src="js/app.js?v=20261105d"></script>
 </body>
 </html>

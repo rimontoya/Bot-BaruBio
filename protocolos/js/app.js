@@ -34,7 +34,6 @@
   //  - Local (sin url): lo editado en la pestaña Precios de este navegador.
   const URL_NUBE = (window.CONFIG_PRECIOS && window.CONFIG_PRECIOS.url) || '';
   const CLAVE_CACHE_NUBE = 'protocolos.precios.nube';
-  const CLAVE_PIN = 'protocolos.precios.pin';
   const leerLocal = (clave) => { try { return JSON.parse(localStorage.getItem(clave)); } catch { return null; } };
   const escribirLocal = (clave, valor) => { try { localStorage.setItem(clave, JSON.stringify(valor)); return true; } catch { return false; } };
   let cambios = leerLocal(URL_NUBE ? CLAVE_CACHE_NUBE : CLAVE_PRECIOS) || {};
@@ -526,19 +525,16 @@
       refrescarPrecios();
       return;
     }
-    const pin = leerLocal(CLAVE_PIN) || prompt('PIN para editar precios:');
-    if (!pin) { refrescarPrecios(); return; }
     estadoPrecios('Guardando…');
     try {
       // Sin cabeceras (text/plain) para que el navegador no haga la consulta previa de CORS.
-      const datos = await (await fetch(URL_NUBE, { method: 'POST', body: JSON.stringify({ pin, cambios: nuevos }) })).json();
+      const datos = await (await fetch(URL_NUBE, { method: 'POST', body: JSON.stringify({ pin: pinSesion, cambios: nuevos }) })).json();
       if (!datos.ok) {
-        if (datos.error === 'pin') localStorage.removeItem(CLAVE_PIN);
-        estadoPrecios(datos.error === 'pin' ? 'PIN incorrecto: el cambio no se guardó.' : 'La hoja rechazó el cambio.');
+        estadoPrecios(datos.error === 'pin' ? 'El PIN cambió: vuelve a entrar.' : 'La hoja rechazó el cambio.');
         refrescarPrecios();
+        if (datos.error === 'pin') bloquear('El PIN cambió. Ingresa el nuevo.');
         return;
       }
-      escribirLocal(CLAVE_PIN, pin);
       recibirNube(datos.precios);
       estadoPrecios('Guardado para todos.');
     } catch {
@@ -567,31 +563,68 @@
 
   // ---------- Clientes de la hoja (los anota el bot) ----------
   // Son datos personales: la hoja solo los entrega con el PIN. Sugerencias en los campos "Nombre".
-  async function cargarClientes(pedirPin) {
-    if (!URL_NUBE) return;
-    const pin = leerLocal(CLAVE_PIN) || (pedirPin ? prompt('PIN para ver los clientes de la hoja:') : null);
-    const botones = document.querySelectorAll('[data-cargar-clientes]');
-    botones.forEach((b) => { b.hidden = Boolean(pin); });
-    if (!pin) return;
+  // Devuelve 'ok', 'pin' (PIN incorrecto) o 'red' (sin conexión).
+  async function cargarClientes(pin) {
     try {
       const datos = await (await fetch(URL_NUBE, { method: 'POST', body: JSON.stringify({ accion: 'clientes', pin }) })).json();
-      if (!datos.ok) {
-        if (datos.error === 'pin') localStorage.removeItem(CLAVE_PIN);
-        botones.forEach((b) => { b.hidden = false; });
-        if (pedirPin) alert(datos.error === 'pin' ? 'PIN incorrecto.' : 'La hoja no entregó los clientes.');
-        return;
-      }
-      escribirLocal(CLAVE_PIN, pin);
-      $('#lista-clientes').innerHTML = datos.clientes.map((c) => {
+      if (!datos.ok) return datos.error === 'pin' ? 'pin' : 'red';
+      $('#lista-clientes').innerHTML = (datos.clientes || []).map((c) => {
         const detalle = [c.objetivo, c.productos, c.canal].filter(Boolean).join(' · ');
         return `<option value="${esc(c.nombre)}">${esc(detalle)}</option>`;
       }).join('');
+      return 'ok';
     } catch {
-      botones.forEach((b) => { b.hidden = false; });
+      return 'red';
     }
   }
 
-  document.querySelectorAll('[data-cargar-clientes]').forEach((b) => b.addEventListener('click', () => cargarClientes(true)));
+  // ---------- Acceso con PIN ----------
+  // Con la hoja conectada, la herramienta se abre con el PIN (el mismo de editar precios). Vale mientras
+  // la pestaña siga abierta: recargar no lo vuelve a pedir; cerrar la pestaña sí.
+  // Los clientes los protege la hoja (sin PIN no los entrega); esta pantalla protege el uso de la herramienta.
+  const CLAVE_PIN_SESION = 'protocolos.pin';
+  let pinSesion = (() => { try { return sessionStorage.getItem(CLAVE_PIN_SESION); } catch { return null; } })();
+  try { localStorage.removeItem('protocolos.precios.pin'); } catch { /* versión anterior: el PIN ya no se recuerda por dispositivo */ }
+
+  function desbloquear() {
+    document.body.classList.remove('bloqueada');
+    $('#bloqueo').hidden = true;
+  }
+
+  function bloquear(mensaje) {
+    pinSesion = null;
+    try { sessionStorage.removeItem(CLAVE_PIN_SESION); } catch { /* sin almacenamiento de sesión */ }
+    document.body.classList.add('bloqueada');
+    $('#bloqueo').hidden = false;
+    const error = $('#error-pin');
+    error.textContent = mensaje || '';
+    error.hidden = !mensaje;
+    $('#in-pin').value = '';
+    $('#in-pin').focus();
+  }
+
+  $('#form-bloqueo').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const pin = $('#in-pin').value.trim();
+    if (!pin) return;
+    const boton = $('#form-bloqueo button');
+    boton.disabled = true;
+    const resultado = await cargarClientes(pin);
+    boton.disabled = false;
+    if (resultado === 'pin') return bloquear('PIN incorrecto.');
+    if (resultado === 'red') return bloquear('Sin conexión con la hoja: no se puede comprobar el PIN. Inténtalo de nuevo.');
+    pinSesion = pin;
+    try { sessionStorage.setItem(CLAVE_PIN_SESION, pin); } catch { /* sin almacenamiento de sesión */ }
+    desbloquear();
+  });
+
+  async function iniciarAcceso() {
+    if (!URL_NUBE) return desbloquear();
+    if (!pinSesion) return bloquear();
+    // Ya entró en esta pestaña: se abre al instante y los clientes se cargan detrás.
+    desbloquear();
+    if (await cargarClientes(pinSesion) === 'pin') bloquear('El PIN cambió. Ingresa el nuevo.');
+  }
 
   $('#precios').addEventListener('change', (ev) => {
     const input = ev.target.closest('input[data-clave]');
@@ -665,14 +698,18 @@
   poblarProductos();
   alCambiarProducto();
   $('#modo-precios').textContent = URL_NUBE
-    ? 'Precios compartidos: se guardan en la hoja de Google y los ven todos los dispositivos. Para editar se pide el PIN la primera vez.'
+    ? 'Precios compartidos: se guardan en la hoja de Google y los ven todos los dispositivos. Se editan con el PIN con el que se entró.'
     : 'Los cambios se guardan solo en este navegador; usa “Exportar” para tener una copia o pasarlos a otro equipo.';
   renderPrecios();
   agregarLineaManual();
   render();
   renderManual();
   cargarNube();
-  cargarClientes(false);
+  iniciarAcceso();
   // Al volver a la pestaña del navegador, se traen los precios que otros hayan cambiado.
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { cargarNube(); cargarClientes(false); } });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    cargarNube();
+    if (pinSesion) cargarClientes(pinSesion);
+  });
 })();

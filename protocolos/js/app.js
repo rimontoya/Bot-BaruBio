@@ -568,15 +568,76 @@
     try {
       const datos = await (await fetch(URL_NUBE, { method: 'POST', body: JSON.stringify({ accion: 'clientes', pin }) })).json();
       if (!datos.ok) return datos.error === 'pin' ? 'pin' : 'red';
-      $('#lista-clientes').innerHTML = (datos.clientes || []).map((c) => {
-        const detalle = [c.objetivo, c.productos, c.canal].filter(Boolean).join(' · ');
-        return `<option value="${esc(c.nombre)}">${esc(detalle)}</option>`;
-      }).join('');
+      clientesHoja = datos.clientes || [];
       return 'ok';
     } catch {
       return 'red';
     }
   }
+
+  // Lista desplegable propia: el <datalist> del navegador no funciona bien en iPhone ni en el
+  // navegador interno de WhatsApp. Ya vienen ordenados del más reciente al más antiguo.
+  let clientesHoja = [];
+  const MAX_SUGERENCIAS = 8;
+  const normalizar = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+  function autocompletarClientes(input) {
+    const caja = document.createElement('div');
+    caja.className = 'sugerencias';
+    caja.hidden = true;
+    input.after(caja);
+    let opciones = [];
+    let activa = -1;
+
+    const cerrar = () => { caja.hidden = true; activa = -1; };
+    const elegir = (c) => {
+      input.value = c.nombre;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      cerrar();
+    };
+    const pintarActiva = () => caja.querySelectorAll('.sugerencia').forEach((el, i) => el.classList.toggle('activa', i === activa));
+
+    function mostrar() {
+      const texto = normalizar(input.value.trim());
+      opciones = clientesHoja.filter((c) => !texto || normalizar(c.nombre).includes(texto)).slice(0, MAX_SUGERENCIAS);
+      // Si ya está escrito exactamente un cliente, no hace falta sugerir.
+      if (!opciones.length || (opciones.length === 1 && normalizar(opciones[0].nombre) === texto)) return cerrar();
+      caja.innerHTML = opciones.map((c) => {
+        const detalle = [c.objetivo, c.productos, c.canal].filter(Boolean).join(' · ');
+        return `<div class="sugerencia" role="option"><b>${esc(c.nombre)}</b>${detalle ? `<small>${esc(detalle)}</small>` : ''}</div>`;
+      }).join('');
+      activa = -1;
+      caja.hidden = false;
+    }
+
+    input.setAttribute('autocomplete', 'off');
+    let cierre;
+    input.addEventListener('focus', () => { clearTimeout(cierre); mostrar(); });
+    input.addEventListener('input', (ev) => { if (ev.isTrusted) mostrar(); });
+    // pointerdown se dispara antes de que el campo pierda el foco, así el toque no se pierde.
+    caja.addEventListener('pointerdown', (ev) => {
+      const el = ev.target.closest('.sugerencia');
+      if (!el) return;
+      ev.preventDefault();
+      elegir(opciones[[...caja.children].indexOf(el)]);
+    });
+    input.addEventListener('blur', () => { cierre = setTimeout(cerrar, 100); });
+    input.addEventListener('keydown', (ev) => {
+      if (caja.hidden) return;
+      if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        activa = (activa + (ev.key === 'ArrowDown' ? 1 : -1) + opciones.length) % opciones.length;
+        pintarActiva();
+      } else if (ev.key === 'Enter' && activa >= 0) {
+        ev.preventDefault();
+        elegir(opciones[activa]);
+      } else if (ev.key === 'Escape') {
+        cerrar();
+      }
+    });
+  }
+
+  document.querySelectorAll('input[name="cliente"]').forEach(autocompletarClientes);
 
   // ---------- Acceso con PIN ----------
   // Con la hoja conectada, la herramienta se abre con el PIN (el mismo de editar precios). Vale mientras

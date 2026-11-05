@@ -4,6 +4,10 @@ Doc/
 # Copia congelada local del generador (contiene datos de una clienta).
 protocolosV1/
 
+# Bot: claves y conversaciones de clientes. Nunca al repositorio.
+bot/.env
+bot/datos/
+
 # Sistema
 Thumbs.db
 Desktop.ini

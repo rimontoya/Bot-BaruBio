@@ -99,7 +99,7 @@
     <section class="panel ancho">
       <h2>Precios (USD)</h2>
       <p class="ayuda">Lista oficial del 13 de agosto de 2026. Cada péptido se vende como kit: precio de lista + recargo (el agua suelta no lleva recargo).
-        Los cambios se guardan en este navegador; usa “Exportar” para tener una copia o pasarlos a otro equipo.</p>
+        <span id="modo-precios"></span></p>
       <label class="recargo">Recargo por kit <input type="number" id="in-recargo" min="0" step="0.01"></label>
       <table class="tabla-precios">
         <thead><tr><th>Producto</th><th>Presentación</th><th>Precio lista</th><th>Precio kit</th></tr></thead>
@@ -117,6 +117,7 @@
   <script src="js/calculos.js"></script>
   <script src="js/productos.js"></script>
   <script src="js/precios.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

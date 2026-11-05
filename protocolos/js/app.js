@@ -28,15 +28,16 @@
   const productoPorId = (id) => PRODUCTOS.find((p) => p.id === id);
 
   // ---------- Precios ----------
-  // Base: la lista oficial (precios.js). Encima, los cambios hechos en la pestaña Precios, guardados
-  // en este navegador (temporal hasta pasar a Google Sheets).
-  function cargarCambios() {
-    try { return JSON.parse(localStorage.getItem(CLAVE_PRECIOS)) || {}; } catch { return {}; }
-  }
-  function guardarCambios() {
-    try { localStorage.setItem(CLAVE_PRECIOS, JSON.stringify(cambios)); return true; } catch { return false; }
-  }
-  let cambios = cargarCambios();
+  // Base: la lista oficial (precios.js). Encima van los "cambios", que según config.js son:
+  //  - Nube (CONFIG_PRECIOS.url): la copia de la hoja de Google, compartida por todos los dispositivos.
+  //    Se guarda una copia local para poder abrir sin conexión.
+  //  - Local (sin url): lo editado en la pestaña Precios de este navegador.
+  const URL_NUBE = (window.CONFIG_PRECIOS && window.CONFIG_PRECIOS.url) || '';
+  const CLAVE_CACHE_NUBE = 'protocolos.precios.nube';
+  const CLAVE_PIN = 'protocolos.precios.pin';
+  const leerLocal = (clave) => { try { return JSON.parse(localStorage.getItem(clave)); } catch { return null; } };
+  const escribirLocal = (clave, valor) => { try { localStorage.setItem(clave, JSON.stringify(valor)); return true; } catch { return false; } };
+  let cambios = leerLocal(URL_NUBE ? CLAVE_CACHE_NUBE : CLAVE_PRECIOS) || {};
   const valido = (v) => typeof v === 'number' && v >= 0;
   const clavePrecio = (productoId, presentacion) => `${productoId}:${presentacion}`;
   const precioLista = (productoId, presentacion) => {
@@ -481,64 +482,109 @@
     return filas;
   }
 
+  // La tabla se construye una vez; luego solo se actualizan valores, para no perder el foco al editar.
   function renderPrecios() {
-    $('#in-recargo').value = recargoKit();
-    $('#precios').innerHTML = filasPrecios().map((f) => {
-      const lista = precioLista(f.id, f.valor);
-      const kit = f.kit ? precioKit(f.id, f.valor) : null;
-      return `<tr><td>${esc(f.nombre)}</td><td>${f.pres}</td>
-        <td><input type="number" min="0" step="0.01" data-clave="${clavePrecio(f.id, f.valor)}" value="${lista ?? ''}" placeholder="Pendiente"></td>
-        <td class="precio-kit">${f.kit ? (kit !== null ? dinero(kit) : '—') : 'No aplica'}</td></tr>`;
-    }).join('');
+    $('#precios').innerHTML = filasPrecios().map((f) => `<tr><td>${esc(f.nombre)}</td><td>${f.pres}</td>
+        <td><input type="number" min="0" step="0.01" data-clave="${clavePrecio(f.id, f.valor)}" placeholder="Pendiente"></td>
+        <td class="precio-kit" data-kit="${f.kit}"></td></tr>`).join('');
+    pintarPrecios();
+  }
+
+  function pintarPrecios() {
+    const recargo = $('#in-recargo');
+    if (document.activeElement !== recargo) recargo.value = recargoKit();
+    document.querySelectorAll('#precios input[data-clave]').forEach((input) => {
+      const [id, valor] = input.dataset.clave.split(':');
+      const lista = precioLista(id, valor);
+      if (document.activeElement !== input) input.value = lista ?? '';
+      const celda = input.closest('tr').querySelector('.precio-kit');
+      const pk = precioKit(id, valor);
+      celda.textContent = celda.dataset.kit === 'true' ? (pk !== null ? dinero(pk) : '—') : 'No aplica';
+    });
   }
 
   function estadoPrecios(texto) {
     $('#estado-precios').textContent = texto;
   }
 
-  function guardarYRefrescar() {
-    estadoPrecios(guardarCambios() ? 'Guardado.' : 'No se pudo guardar en este navegador: exporta los precios para no perderlos.');
+  function refrescarPrecios() {
+    pintarPrecios();
     render();
     renderManual();
   }
 
-  $('#precios').addEventListener('input', (ev) => {
+  // nuevos: { clave: valor | null }. null = sin precio (pendiente).
+  async function guardarPrecios(nuevos) {
+    if (!URL_NUBE) {
+      for (const [clave, v] of Object.entries(nuevos)) {
+        // Igual a la lista oficial: no hace falta guardarlo como cambio.
+        const oficial = clave === CLAVE_RECARGO ? KIT.recargo : PRECIOS_LISTA[clave];
+        if (v === oficial) delete cambios[clave];
+        else cambios[clave] = v;
+      }
+      estadoPrecios(escribirLocal(CLAVE_PRECIOS, cambios) ? 'Guardado en este navegador.' : 'No se pudo guardar en este navegador: exporta los precios para no perderlos.');
+      refrescarPrecios();
+      return;
+    }
+    const pin = leerLocal(CLAVE_PIN) || prompt('PIN para editar precios:');
+    if (!pin) { refrescarPrecios(); return; }
+    estadoPrecios('Guardando…');
+    try {
+      // Sin cabeceras (text/plain) para que el navegador no haga la consulta previa de CORS.
+      const datos = await (await fetch(URL_NUBE, { method: 'POST', body: JSON.stringify({ pin, cambios: nuevos }) })).json();
+      if (!datos.ok) {
+        if (datos.error === 'pin') localStorage.removeItem(CLAVE_PIN);
+        estadoPrecios(datos.error === 'pin' ? 'PIN incorrecto: el cambio no se guardó.' : 'La hoja rechazó el cambio.');
+        refrescarPrecios();
+        return;
+      }
+      escribirLocal(CLAVE_PIN, pin);
+      recibirNube(datos.precios);
+      estadoPrecios('Guardado para todos.');
+    } catch {
+      estadoPrecios('Sin conexión: el cambio no se guardó. Inténtalo de nuevo.');
+      refrescarPrecios();
+    }
+  }
+
+  function recibirNube(precios) {
+    cambios = precios;
+    escribirLocal(CLAVE_CACHE_NUBE, cambios);
+    refrescarPrecios();
+  }
+
+  async function cargarNube() {
+    if (!URL_NUBE) return;
+    try {
+      const datos = await (await fetch(URL_NUBE)).json();
+      if (!datos.ok) throw new Error();
+      recibirNube(datos.precios);
+      estadoPrecios(`Precios sincronizados a las ${new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}.`);
+    } catch {
+      estadoPrecios('Sin conexión con la hoja: se usan los últimos precios descargados.');
+    }
+  }
+
+  $('#precios').addEventListener('change', (ev) => {
     const input = ev.target.closest('input[data-clave]');
     if (!input) return;
-    const clave = input.dataset.clave;
     const v = parseFloat(input.value);
-    // Igual a la lista oficial: no hace falta guardarlo como cambio. Vacío: queda pendiente.
-    if (Number.isFinite(v) && v >= 0 && v === PRECIOS_LISTA[clave]) delete cambios[clave];
-    else cambios[clave] = Number.isFinite(v) && v >= 0 ? v : null;
-    const kit = input.closest('tr').querySelector('.precio-kit');
-    if (kit.textContent !== 'No aplica') {
-      const [id, valor] = clave.split(':');
-      const pk = precioKit(id, valor);
-      kit.textContent = pk !== null ? dinero(pk) : '—';
-    }
-    guardarYRefrescar();
+    guardarPrecios({ [input.dataset.clave]: Number.isFinite(v) && v >= 0 ? v : null });
   });
 
-  $('#in-recargo').addEventListener('input', (ev) => {
+  $('#in-recargo').addEventListener('change', (ev) => {
     const v = parseFloat(ev.target.value);
-    if (Number.isFinite(v) && v >= 0 && v !== KIT.recargo) cambios[CLAVE_RECARGO] = v;
-    else delete cambios[CLAVE_RECARGO];
-    // Solo se actualiza la columna de kit para no perder el foco del campo.
-    document.querySelectorAll('#precios input[data-clave]').forEach((input) => {
-      const kit = input.closest('tr').querySelector('.precio-kit');
-      if (kit.textContent === 'No aplica') return;
-      const [id, valor] = input.dataset.clave.split(':');
-      const pk = precioKit(id, valor);
-      kit.textContent = pk !== null ? dinero(pk) : '—';
-    });
-    guardarYRefrescar();
+    guardarPrecios({ [CLAVE_RECARGO]: Number.isFinite(v) && v >= 0 ? v : KIT.recargo });
   });
 
+  // En modo nube la hoja es la lista oficial, así que no hay nada que restaurar.
+  $('#btn-restaurar').hidden = Boolean(URL_NUBE);
   $('#btn-restaurar').addEventListener('click', () => {
     if (!confirm('¿Volver a la lista de precios oficial? Se pierden los cambios hechos en este navegador.')) return;
     cambios = {};
-    renderPrecios();
-    guardarYRefrescar();
+    escribirLocal(CLAVE_PRECIOS, cambios);
+    estadoPrecios('Lista oficial restaurada.');
+    refrescarPrecios();
   });
 
   $('#btn-exportar').addEventListener('click', () => {
@@ -557,15 +603,8 @@
     if (!archivo) return;
     try {
       const datos = JSON.parse(await archivo.text());
-      const limpios = Object.entries(datos).filter(([, v]) => valido(v));
-      for (const [clave, v] of limpios) {
-        const oficial = clave === CLAVE_RECARGO ? KIT.recargo : PRECIOS_LISTA[clave];
-        if (v === oficial) delete cambios[clave];
-        else cambios[clave] = v;
-      }
-      renderPrecios();
-      guardarYRefrescar();
-      estadoPrecios(`Importados ${limpios.length} precios.`);
+      const limpios = Object.fromEntries(Object.entries(datos).filter(([, v]) => valido(v)));
+      await guardarPrecios(limpios);
     } catch {
       estadoPrecios('El archivo no es válido.');
     }
@@ -597,8 +636,14 @@
   // ---------- Inicio ----------
   poblarProductos();
   alCambiarProducto();
+  $('#modo-precios').textContent = URL_NUBE
+    ? 'Precios compartidos: se guardan en la hoja de Google y los ven todos los dispositivos. Para editar se pide el PIN la primera vez.'
+    : 'Los cambios se guardan solo en este navegador; usa “Exportar” para tener una copia o pasarlos a otro equipo.';
   renderPrecios();
   agregarLineaManual();
   render();
   renderManual();
+  cargarNube();
+  // Al volver a la pestaña del navegador, se traen los precios que otros hayan cambiado.
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cargarNube(); });
 })();
